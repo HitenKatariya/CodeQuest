@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 app.use(express.json({ limit: "30mb", extended: true }))
 app.use(express.urlencoded({ limit: "30mb", extended: true }))
 // Configure CORS
@@ -193,6 +193,8 @@ process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
     process.exit(1);
 });
+
+console.log('Debug - MONGODB_URL:', process.env.MONGODB_URL);
 
 // Export the Express API for Vercel
 export default app;
