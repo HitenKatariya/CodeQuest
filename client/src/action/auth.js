@@ -36,6 +36,7 @@ export const verifyOtp = (verificationData) => async (dispatch) => {
 export const login =(authdata,navigate)=> async(dispatch)=>{
     try {
         console.log('Attempting login with:', { email: authdata.email }); // Debug log
+        console.log('Login payload:', authdata); // Debug log
         const{data}=await api.login(authdata);
         
         if (data && data.result) {
