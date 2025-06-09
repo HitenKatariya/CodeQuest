@@ -3,8 +3,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import './Auth.css';
 import icon from '../../assets/icon.png';
-import Aboutauth from './Aboutauth';
-import { signup, login, verifyOtp } from '../../action/auth';
+import { signup, login } from '../../action/auth';
 
 const Auth = () => {
     const [isSignup, setIsSignup] = useState(false);
@@ -14,9 +13,6 @@ const Auth = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [showOtpVerification, setShowOtpVerification] = useState(false);
-    const [emailOtp, setEmailOtp] = useState('');
-    const [mobileOtp, setMobileOtp] = useState('');
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -25,71 +21,26 @@ const Auth = () => {
         setError('');
         setIsLoading(true);
 
-        if (!email || !password) {
-            setError('Email and password are required');
+        if (isSignup && (!name || !email || !mobileNumber || !password)) {
+            setError('All fields are required for signup');
             setIsLoading(false);
             return;
         }
 
-        if (isSignup) {
-            if (!name) {
-                setError('Name is required for signup');
-                setIsLoading(false);
-                return;
-            }
-            if (!mobileNumber) {
-                setError('Mobile number is required for signup');
-                setIsLoading(false);
-                return;
-            }
-
-            // First step of signup - send OTPs
-            const result = await dispatch(signup({ 
-                name, 
-                email, 
-                password, 
-                mobileNumber 
-            }));
-
-            if (result.success) {
-                setShowOtpVerification(true);
-            } else {
-                setError(result.error);
-            }
-        } else {
-            // Regular login
-            const result = await dispatch(login({ email, password }, navigate));
-            if (!result.success) {
-                setError(result.error);
-            }
+        if (!isSignup && (!email || !password)) {
+            setError('Email and password are required for login');
+            setIsLoading(false);
+            return;
         }
+
+        const result = isSignup
+            ? await dispatch(signup({ name, email, mobileNumber, password }, navigate))
+            : await dispatch(login({ email, mobileNumber, password }, navigate));
+
         setIsLoading(false);
-    };
-
-    const handleOtpVerification = async (e) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
-
-        if (!emailOtp || !mobileOtp) {
-            setError('Both Email OTP and Mobile OTP are required');
-            setIsLoading(false);
-            return;
-        }
-
-        const result = await dispatch(verifyOtp({
-            email,
-            mobileNumber,
-            emailOtp,
-            mobileOtp
-        }));
-
-        if (result.success) {
-            navigate('/'); // Redirect to home after successful verification
-        } else {
+        if (!result.success) {
             setError(result.error);
         }
-        setIsLoading(false);
     };
 
     const handleSwitch = () => {
@@ -98,56 +49,16 @@ const Auth = () => {
         setEmail('');
         setMobileNumber('');
         setPassword('');
-        setEmailOtp('');
-        setMobileOtp('');
         setError('');
-        setShowOtpVerification(false);
     };
-
-    if (showOtpVerification) {
-        return (
-            <section className='auth-section'>
-                <div className='auth-container'>
-                    <h2>Verify Your Account</h2>
-                    <form onSubmit={handleOtpVerification}>
-                        <label htmlFor="emailOtp">
-                            <h4>Email OTP</h4>
-                            <input
-                                type="text"
-                                id="emailOtp"
-                                name="emailOtp"
-                                value={emailOtp}
-                                onChange={(e) => setEmailOtp(e.target.value)}
-                                placeholder="Enter OTP sent to your email"
-                            />
-                        </label>
-                        <label htmlFor="mobileOtp">
-                            <h4>Mobile OTP</h4>
-                            <input
-                                type="text"
-                                id="mobileOtp"
-                                name="mobileOtp"
-                                value={mobileOtp}
-                                onChange={(e) => setMobileOtp(e.target.value)}
-                                placeholder="Enter OTP sent to your mobile"
-                            />
-                        </label>
-                        {error && <p className='error-message'>{error}</p>}
-                        <button type='submit' className='auth-btn' disabled={isLoading}>
-                            {isLoading ? 'Verifying...' : 'Verify OTP'}
-                        </button>
-                    </form>
-                </div>
-            </section>
-        );
-    }
 
     return (
         <section className='auth-section'>
-            {isSignup && <Aboutauth />}
             <div className='auth-container'>
-                <img src={icon} alt='Code Quest' className='login-logo' />
-                <form onSubmit={handleSubmit}>
+                <img src={icon} alt='Code Quest' className='auth-logo' />
+                <h2>{isSignup ? 'Create Your Account' : 'Welcome Back!'}</h2>
+                <p>{isSignup ? 'Join CodeQuest and start your coding journey.' : 'Log in to continue your coding adventure.'}</p>
+                <form onSubmit={handleSubmit} className='auth-form'>
                     {isSignup && (
                         <label htmlFor="name">
                             <h4>Display Name</h4>
@@ -157,6 +68,7 @@ const Auth = () => {
                                 name="name"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter your display name"
                             />
                         </label>
                     )}
@@ -168,6 +80,7 @@ const Auth = () => {
                             id="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Enter your email"
                         />
                     </label>
                     {isSignup && (
@@ -184,30 +97,28 @@ const Auth = () => {
                         </label>
                     )}
                     <label htmlFor="password">
-                        <div style={{display:"flex", justifyContent:"space-between"}}>
-                            <h4>Password</h4>
-                            {!isSignup && <p style={{color: "#007ac6", fontSize:'13px'}}>Forgot password?</p>}
-                        </div>
+                        <h4>Password</h4>
                         <input
                             type="password"
                             name="password"
                             id="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter your password"
                         />
                     </label>
                     {error && <p className='error-message'>{error}</p>}
                     <button type='submit' className='auth-btn' disabled={isLoading}>
-                        {isLoading ? 'Loading...' : isSignup ? 'Sign up' : 'Log in'}
+                        {isLoading ? (isSignup ? 'Creating Account...' : 'Logging in...') : isSignup ? 'Sign up' : 'Log in'}
                     </button>
                 </form>
+                <p>
+                    {isSignup ? 'Already have an account?' : "Don't have an account?"}
+                    <button type='button' className='handle-switch-btn' onClick={handleSwitch}>
+                        {isSignup ? 'Log in' : 'Sign up'}
+                    </button>
+                </p>
             </div>
-            <p>
-                {isSignup ? 'Already have an account?' : "Don't have an account?"}
-                <button type='button' className='handle-switch-btn' onClick={handleSwitch}>
-                    {isSignup ? 'Log in' : 'Sign up'}
-                </button>
-            </p>
         </section>
     );
 };

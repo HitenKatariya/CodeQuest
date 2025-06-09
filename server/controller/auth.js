@@ -179,50 +179,53 @@ export const verifyOTP = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    console.log('Login attempt received:', { email: req.body.email });
-    const { email, password } = req.body;
-    
+    const { email, mobileNumber, password } = req.body;
     try {
-        if (!email || !password) {
+        if (!email || !mobileNumber || !password) {
             return res.status(400).json({
-                message: "Email and password are required",
+                message: "Email, mobile number, and password are required",
                 success: false
             });
         }
 
-        const extinguser = await users.findOne({ email });
-        if (!extinguser) {
-            console.log('Login failed: User not found:', { email });
-            return res.status(404).json({ 
+        const existingUser = await users.findOne({ email, phoneNumber: mobileNumber });
+        if (!existingUser) {
+            return res.status(404).json({
                 message: "User does not exist",
-                success: false 
+                success: false
             });
         }
 
-        const ispasswordcrct = await bcrypt.compare(password, extinguser.password);
-        if (!ispasswordcrct) {
-            console.log('Login failed: Invalid password for user:', { email });
-            return res.status(400).json({ 
+        const isPasswordCorrect = await bcrypt.compare(password, existingUser.password);
+        if (!isPasswordCorrect) {
+            return res.status(400).json({
                 message: "Invalid credentials",
-                success: false 
+                success: false
             });
         }
+
+        // Send OTP for language switching
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        await sendSMSOTP(mobileNumber, otp);
 
         const token = jwt.sign({
-            email: extinguser.email, 
-            id: extinguser._id
-        }, process.env.JWT_SECRET || 'fallback-secret-key', { 
-            expiresIn: "1h" 
-        })
-
-        res.status(200).json({ result: extinguser, token })
-    } catch (error) {
-        console.error('Signup Error:', error); // Enhanced error logging
-        res.status(500).json({
-            message: "something went wrong...",
-            error: error.message,
-            type: error.name
+            email: existingUser.email,
+            id: existingUser._id
+        }, process.env.JWT_SECRET || 'fallback-secret-key', {
+            expiresIn: "1h"
         });
-        return
+
+        res.status(200).json({
+            result: existingUser,
+            token,
+            message: "Login successful. OTP sent to your mobile number for language switching.",
+            success: true
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            message: "Something went wrong",
+            success: false
+        });
     }
-}
+};
