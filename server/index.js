@@ -103,8 +103,6 @@ const connectToDatabase = async () => {
 
     try {
         const mongoOptions = {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
             serverApi: {
                 version: ServerApiVersion.v1,
                 strict: true,
